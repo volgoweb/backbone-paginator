@@ -1,26 +1,43 @@
-window.app = {
+app = {
+	debug: true,
+	log: {},
 	models: {},
 	collections: {},
 	views: {},
+	controllers: {},
 	init: {},
 	run: {},
 };
 
+// Вывод объектов в консоль (Только в режиме отладки при app.debug равным true)
+app.log = function(obj) {
+	if (app.debug) console.log(obj);
+};
+
 
 $(document).ready(function(){
-  window.app.init();
-  window.app.run();
+  app.init();
+  app.run();
 });
 
 
-window.app.init = function() {
+app.init = function() {
+	// Роутинг
+	app.controllers.Controller = Backbone.Router.extend({
+		routes: {
+			'page/:page': 'changePage'
+		}
+	});
+
+	app.controllers.controller = new app.controllers.Controller(); // Создаём контроллер
+
 	// модель одной задачи
-	window.app.models.mTask = Backbone.Model.extend({});
+	app.models.mTask = Backbone.Model.extend({});
 
 
 	// модель коллекции задач
-	window.app.collections.cmTasks = Backbone.Collection.extend({
-					model: window.app.models.mTask,
+	app.collections.cmTasks = Backbone.Collection.extend({
+					model: app.models.mTask,
 					url: '/get-tasks.php',
 					urlCount: '/get-tasks.php?p=count',
 
@@ -57,10 +74,7 @@ window.app.init = function() {
 
 
 	// view таблицы задач
-	window.app.views.vTableTasks = Backbone.View.extend({
-		events: {
-			"click #pager li": "openPage"
-		},
+	app.views.vTableTasks = Backbone.View.extend({
 		initialize: function(args) {
 			this.el = args.el
 			this.perPage = args.perPage;
@@ -116,26 +130,50 @@ window.app.init = function() {
 			return this;
 		},
 
-		openPage: function(e) {
-			var offset = $(e.target).attr('offset');
+		openPage: function(page) {
+			var offset = (page - 1) * this.perPage;
+
 			this.collection.fetchPart({offset: offset, limit: this.perPage});
 
 			// обновляем значение текущей страницы
-			var currentPage  = parseInt($(e.target).text());
-			this.setCurrentPage( currentPage );
+			this.setCurrentPage( page );
+			
+			app.controllers.controller.navigate('page/' + page, {trigger: true});
+		
 		},
 
 		setCurrentPage: function(currentPage) {
 			this.currentPage = currentPage;
+			// app.log(currentPage);
 			this.pager.find('li').removeClass('active');
 			this.pager.find('li[num=' + currentPage + ']').addClass('active');
 		},
 
+		// Events
+		events: {
+			"click #pager li": "handlerOpenPage"
+		},
+
+		handlerOpenPage: function(e) {
+			var page  = parseInt($(e.target).text());
+			// app.log(page);
+			this.openPage(page);
+		},
 	});
+
 };
 
-window.app.run = function() {
-	tasks = new window.app.collections.cmTasks();
-	viewTasks = new window.app.views.vTableTasks({el: '#table', collection: tasks, perPage: 2});
+app.run = function() {
+	app.collections.tasks = new app.collections.cmTasks();
+	app.views.viewTasks = new app.views.vTableTasks({el: '#table', collection: app.collections.tasks, perPage: 2});
+
+	// Роутинг
+	app.controllers.controller.on('route:changePage', function(page) {
+		app.log('controller help '+ page);
+		// console.log(app.views.viewTasks);
+		app.views.viewTasks.openPage(page);
+	});
+
+	Backbone.history.start({pushState: true});  // Запускаем HTML5 History push 
 };
 
