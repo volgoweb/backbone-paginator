@@ -4,12 +4,12 @@
 <html>
 	<head>
 	
-		<script type="text/javascript" src="/jquery-1.10.2.min.js"></script>
-		<script type="text/javascript" src="/underscore/underscore.js"></script>
-		<script type="text/javascript" src="/backbone/backbone.js"></script>
-		<script type="text/javascript" src="/app.js"></script>
+		<script type="text/javascript" src="/js/jquery-1.10.2.min.js"></script>
+		<script type="text/javascript" src="/js/underscore.js"></script>
+		<script type="text/javascript" src="/js/backbone.js"></script>
+		<script type="text/javascript" src="/js/app.js"></script>
 
-		<link type="text/css" rel="stylesheet" media="screen" href="/style.css">
+		<link type="text/css" rel="stylesheet" media="screen" href="/css/style.css">
 		<title>Backbone</title>
 		
 	</head>
