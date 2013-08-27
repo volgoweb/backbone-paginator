@@ -1,10 +1,26 @@
+window.app = {
+	models: {},
+	collections: {},
+	views: {},
+	init: {},
+	run: {},
+};
+
+
 $(document).ready(function(){
+  window.app.init();
+  window.app.run();
+});
+
+
+window.app.init = function() {
 	// модель одной задачи
-	mTask = Backbone.Model.extend({});
+	window.app.models.mTask = Backbone.Model.extend({});
+
 
 	// модель коллекции задач
-	cmTasks = Backbone.Collection.extend({
-					model: mTask,
+	window.app.collections.cmTasks = Backbone.Collection.extend({
+					model: window.app.models.mTask,
 					url: '/get-tasks.php',
 					urlCount: '/get-tasks.php?p=count',
 
@@ -39,11 +55,9 @@ $(document).ready(function(){
 					},
 	});
 
-	tasks = new cmTasks();
-
 
 	// view таблицы задач
-	vTableTasks = Backbone.View.extend({
+	window.app.views.vTableTasks = Backbone.View.extend({
 		events: {
 			"click #pager li": "openPage"
 		},
@@ -101,7 +115,6 @@ $(document).ready(function(){
 			this.countPages = count;
 			return this;
 		},
-		//events: 
 
 		openPage: function(e) {
 			var offset = $(e.target).attr('offset');
@@ -119,7 +132,10 @@ $(document).ready(function(){
 		},
 
 	});
+};
 
-	viewTasks = new vTableTasks({el: '#table', collection: tasks, perPage: 2});
+window.app.run = function() {
+	tasks = new window.app.collections.cmTasks();
+	viewTasks = new window.app.views.vTableTasks({el: '#table', collection: tasks, perPage: 2});
+};
 
-});
