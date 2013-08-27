@@ -1,0 +1,15 @@
+
+#pager {
+	overflow: hidden;
+}
+
+#pager li {
+	cursor: pointer;
+	padding: 3px;
+	float: left;
+	margin-right: 5px;
+}
+#pager li.active {
+	font-weight: bold;
+	border: 1px solid blue;
+}

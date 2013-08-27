@@ -17,12 +17,24 @@ $tasks = array(
 		'name' => 'name4',
 		'category' => 'cat4',
 	),
+	array(
+		'name' => 'name5',
+		'category' => 'cat5',
+	),
+	array(
+		'name' => 'name6',
+		'category' => 'cat6',
+	),
+	array(
+		'name' => 'name7',
+		'category' => 'cat7',
+	),
 );
 
 header('Content-Type: application/json');
 
 if ($_GET['p'] == 'count') {
-	print json_encode(4);
+	print json_encode(count($tasks));
 }
 else {
 	

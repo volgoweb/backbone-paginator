@@ -9,13 +9,7 @@
 		<script type="text/javascript" src="/backbone/backbone.js"></script>
 		<script type="text/javascript" src="/app.js"></script>
 
-		<style>
-			#pager li {
-				cursor: pointer;
-				padding: 3px;
-				border: 1px solid blue;
-			}
-		</style>
+		<link type="text/css" rel="stylesheet" media="screen" href="/style.css">
 		<title>Backbone</title>
 		
 	</head>
@@ -24,9 +18,8 @@
 	<div id="app">
 		<div id="table">
 			<div class="content"></div>	
-			<div id="pager">
-				<li>li</li>	
-			</div>
+			<ul id="pager">
+			</ul>
 		</div>
 		
 	</div>
