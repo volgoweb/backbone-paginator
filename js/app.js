@@ -1,3 +1,6 @@
+/*
+ * Основной объект приложения 
+ */
 app = {
 	debug: true,
 	log: {},
@@ -37,143 +40,185 @@ app.init = function() {
 
 	// модель коллекции задач
 	app.collections.cmTasks = Backbone.Collection.extend({
-					model: app.models.mTask,
-					url: '/get-tasks.php',
-					urlCount: '/get-tasks.php?p=count',
+			model: app.models.mTask,
+			url: '/get-tasks.php',
+			urlCount: '/get-tasks.php?p=count',
 
-					initialize: function() {
-						this.count = null;
-						this.baseUrl = this.url;
-						this.getCount();
-					},			
-					
-					// получение полного количества объектов в коллекции
-					getCount: function() {
-						var thisCollection = this;
-						$.ajax({
-							type: 'GET',
-							url: this.urlCount,
-							dataType: 'json',
-							success: function(data) {
-								var count = parseInt(data);
-								if (count) thisCollection.count = data;
-							}
-						});
-					},
-					
-					// переопределяем метод получения данных коллекции
-					fetchPart: function(options) {
-						offset = parseInt(options.offset);
-						limit = parseInt(options.limit);
+			initialize: function() {
+				this.count = null;
+				this.baseUrl = this.url;
+				this.getCount();
+			},			
 
-						this.url = this.baseUrl + '?offset=' + offset + '&limit=' + limit;
+			/*
+			 * получение полного количества объектов в коллекции
+			 */
+			getCount: function() {
+				var thisCollection = this;
+				$.ajax({
+					type: 'GET',
+					url: this.urlCount,
+					dataType: 'json',
+					success: function(data) {
+						var count = parseInt(data);
+						if (count) thisCollection.count = data;
+					}
+				});
+			},
+			
+			// переопределяем метод получения данных коллекции
+			fetchPart: function(options) {
+				offset = parseInt(options.offset);
+				limit = parseInt(options.limit);
 
-						this.fetch();
-					},
-	});
+				this.url = this.baseUrl + '?offset=' + offset + '&limit=' + limit;
+
+				this.fetch();
+			},
+	}); // -- END app.collections.cmTasks
 
 
 	// view таблицы задач
 	app.views.vTableTasks = Backbone.View.extend({
-		initialize: function(args) {
-			this.el = args.el
-			this.perPage = args.perPage;
-			this.currentPage = 1;
-			this.pager = $('#pager');
+			initialize: function(args) {
+				this.el = args.el
+				this.perPage = args.perPage;
+				this.pager = $( args.pagerEl );
 
-			this.collection.on('sync', this.prepare, this);
-			this.collection.on('sync', this.render, this);
+				this.collection.on('sync', this.prepare, this);
+				this.collection.on('sync', this.render, this);
 
-			this.collection.fetchPart({offset: 0, limit: args.perPage});
-		},
+				// this.collection.fetchPart({offset: 0, limit: args.perPage});
 
-		prepare: function() {
-			if (!this.countPages) {
-				this.calcCountPages().renderPaginator();
-			}
-			return this;
-		},
+				// добавляем обработчики внутренних событий
+				this.on('change:page', this.openPage, this);
+				this.on('change:page', this.markCurrentPage, this);
 
-		render: function() {
-			var thisView = this;
+				// устанавливаем дефолтное значение страницы (от этого сработает триггер и отрендерится коллекция)
+				if (! this.page) this.setPage( 1 );
+			},
 
-			var html = '';
-			for (var i in	this.collection.models) {
-				var m = this.collection.models[i];
-				html += '<div>'+m.get('name')+'</div>';
-				// this.$elem.append('<div>'+m.get('name')+' ___</div>');
-			}	
-			$(this.el).find('.content').html(html);
+			prepare: function() {
+				if (!this.countPages) {
+					this.calcCountPages().renderPaginator();
+				}
+				return this;
+			},
 
-			return this;
-		},
+			render: function() {
+				var thisView = this;
 
-		// Формируем html код блока пагинации
-		renderPaginator: function() {
-			this.pager.html();
+				$(this.el).find('.content').html('');
+				for (var i in	this.collection.models) {
+					var model = this.collection.models[i];
+					this.renderItem(model).appendTo( $(this.el).find('.content') );
+				}	
 
-			for (var i = 1; i <= this.countPages; i++) {
-				var offset = (i - 1) * this.perPage;
-				var li = $('<li offset="' + offset + '" num="' + i + '">' + i + '</li>');
-				this.pager.append(li);
-			}
+				return this;
+			},
 
-			// установим текущую страницу
-			this.setCurrentPage(this.currentPage);
+			/*
+			 * Возвращает jquery объект модели
+			 */
+			renderItem: function(model) {
+				return $('<div/>', {
+						text: model.get('name')
+				});
+			},
 
-			return this;
-		},
+			/*
+			 * Формируем html код блока пагинации
+			 */
+			renderPaginator: function() {
+				this.pager.html();
 
-		calcCountPages: function() {
-			var count = Math.ceil(this.collection.count / this.perPage);
-			this.countPages = count;
-			return this;
-		},
+				for (var i = 1; i <= this.countPages; i++) {
+					var offset = (i - 1) * this.perPage;
+					this.renderPaginatorPage(offset, i).appendTo( this.pager );
+				}
 
-		openPage: function(page) {
-			var offset = (page - 1) * this.perPage;
+				// установим текущую страницу
+				this.setPage(this.page);
 
-			this.collection.fetchPart({offset: offset, limit: this.perPage});
+				return this;
+			},
 
-			// обновляем значение текущей страницы
-			this.setCurrentPage( page );
-			
-			app.controllers.controller.navigate('page/' + page, {trigger: true});
-		
-		},
+			/*
+			 * Формирует jquery объект с ссылкой номера страницы в блоке пагинаторе
+			 */
+			renderPaginatorPage: function(offset, num) {
+				return $('<li/>', {
+					text:		num
+				})
+				.attr('offset', offset)
+				.attr('num', num);
+			},
 
-		setCurrentPage: function(currentPage) {
-			this.currentPage = currentPage;
-			// app.log(currentPage);
-			this.pager.find('li').removeClass('active');
-			this.pager.find('li[num=' + currentPage + ']').addClass('active');
-		},
+			/*
+			 * Выделяет ссылку текущей страницы в блоке пагинатора
+			 */
+			markCurrentPage: function() {
+				this.pager.find('li').removeClass('active');
+				this.pager.find('li[num=' + this.page + ']').addClass('active');
+			},
 
-		// Events
-		events: {
-			"click #pager li": "handlerOpenPage"
-		},
+			/*
+			 * Высчитывает количество страниц, на которых можно уместить абсолютно всю коллекцию, 
+			 * разбив на perPage объектов на странице
+			 */
+			calcCountPages: function() {
+				var count = Math.ceil(this.collection.count / this.perPage);
+				this.countPages = count;
+				return this;
+			},
 
-		handlerOpenPage: function(e) {
-			var page  = parseInt($(e.target).text());
-			// app.log(page);
-			this.openPage(page);
-		},
-	});
+			/*
+			 * Обновляет коллекцию согласно номеру текущей страницы и 
+			 * автоматически срабатывает триггер, после которого заново рендерится коллекция
+			 */
+			openPage: function() {
+				var offset = (this.page - 1) * this.perPage;
 
-};
+				this.collection.fetchPart({offset: offset, limit: this.perPage});
+				
+				app.controllers.controller.navigate('page/' + this.page, {trigger: true});
+			},
+
+			/*
+			 * Меняет значение текущей страницы
+			 */
+			setPage: function(page) {
+				this.page = page;
+				this.trigger('change:page');
+			},
+
+			// Events
+			events: {
+				"click #pager li": "changePage"
+			},
+
+			/*
+			 * Обработчик клика по ссылке номера страницы в пагинаторе
+			 */
+			changePage: function(e) {
+				page  = parseInt($(e.target).text());
+				this.setPage( page );
+			},
+	}); // -- END app.views.vTableTasks
+}; // -- END app.init
+
 
 app.run = function() {
 	app.collections.tasks = new app.collections.cmTasks();
-	app.views.viewTasks = new app.views.vTableTasks({el: '#table', collection: app.collections.tasks, perPage: 2});
+	app.views.viewTasks = new app.views.vTableTasks({el: '#table', pagerEl: '#pager', collection: app.collections.tasks, perPage: 2});
 
 	// Роутинг
 	app.controllers.controller.on('route:changePage', function(page) {
 		app.log('controller help '+ page);
 		// console.log(app.views.viewTasks);
-		app.views.viewTasks.openPage(page);
+		app.views.viewTasks.setPage(page);
 	});
 
 	Backbone.history.start({pushState: true});  // Запускаем HTML5 History push 
-};
+}; // -- END app.run
 
